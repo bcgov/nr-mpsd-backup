@@ -128,3 +128,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# miscellaneous
+sqls
+sqls/
+logs
+logs/
+columns
+columns/

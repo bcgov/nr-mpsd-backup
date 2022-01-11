@@ -12,29 +12,32 @@ This file contains classes / functions used in process. Called from main script
 runMPSDbackup.py
 
 """
-# BIG TO DOs
-# LOGGER statements
+
+ #####TO DO############
+ # https://dataedo.com/kb/query/postgresql/list-all-primary-keys-and-their-columns
+ # https://www.postgresql.org/docs/14/infoschema-constraint-column-usage.html
+ # CONSTRAINTS / PARAMTERS NEEDED?
+ #      length? - character_maximum_length or character_offset_length?
+ #      primary key?
+ #      foreign keys?
+ #      precision?
 
 import datetime, glob, logging, psycopg2, os, sys
-
 # import minio module for writing to S3
 import minio
 # import scandir if needed, faster for working through directories
 import scandir
-
-# import constants file
 from . import constants
+
 # not sure why this var name is in UPPERCASE but this is how it's used in the 
 # Snowpack scripts
 LOGGER = logging.getLogger(__name__)
+
 
 class BackupMPSD(object):
     """High level functionality for backing up MPSD"""
     def __init__(self):
         LOGGER.debug("init object")
-        #TO DO - create dirIterator if necessary, check with Kevin
-
-    def archiveData(self):
 
     def generateFileName(self):
         # date stamp in MTB GIS format with time. TO DO - doublecheck standards 
@@ -44,64 +47,108 @@ class BackupMPSD(object):
         filename = "MPSDBackup" + time_Stamp + ".sql"
         return filename
        
-
     def createBackupFile(self):
         # create backup file with timestamp 
         #https://stackoverflow.com/questions/23732900/postgresql-database-backup-using-python
         fileName = self.generateFileName()
-        conn = None
-        conn = psycopg2.connect(database = contants.POSTGRES_INSTANCE,
-                                user = constants.POSTGRES_USER,
-                                password = constants.POSTGRES_USER)
+        LOGGER.debug(f"file created: {fileName}")
+        # connection parameters
+        conn = None           
+        conn = psycopg2.connect(database = constants.POSTGRES_DB,
+                                user = constants.POSTGRES_ID, 
+                                password = constants.POSTGREST_SECRET, 
+                                host = constants.POSTGRES_HOST, 
+                                port = constants.POSTGRES_PORT)
+        # This will be populated with secrets when in production
         cursor = conn.cursor()
         tables = []
-        # the where clause below might not be necessary
+        # schema name from Brett and Soumen
         cursor.execute("""SELECT table_name FROM information_schema.tables
-                        WHERE table_schema = 'public'""")
-        #https://stackoverflow.com/questions/10598002/how-do-i-get-tables-in-postgres-using-psycopg2
+                        WHERE table_schema = 'app_mpsd'""")
+        # REFERENCE: https://stackoverflow.com/questions/10598002/how-do-i-get-tables-in-postgres-using-psycopg2
         # Not sure if this will append table as desired string (e.g. is there punctuation?)
+        
+        # get list of tables
         for table in cursor.fetchall():
+            table = str(table)
+            LOGGER.debug(f"table: {table}")
             tables.append(table)
-        # TO DO - get list of tables
+
+        # get column info
+        columnCursor = conn.cursor()
+        columnCursor.execute("""SELECT * FROM information_schema.columns
+                        WHERE table_schema = 'app_mpsd'
+                        ORDER BY table_name, ordinal_position""") 
+        
         # get each row from each table and write it to an .sql file
-        with open(fileName, 'a"') as f:
+        with open(fileName, 'a') as f:
             for t in tables:
-            # string formatting is a bit tricky 
             # https://www.psycopg.org/docs/usage.html#query-parameters
-                cursor.execute("""
-                    SELECT * FROM %s;", (t,)
-                    """)
-                # this is another option for the cursor but I'm not sure it'll work
-                #SQL = "SELECT * FROM %s"
-                #cursor.execute(SQL, t)
-                for row in cursor:
-                    f.write("INSERT INTO " + t + " values (" + str(row) + ");")
-            # this seems redundant now
+            # string formatting is a bit tricky, did this lazy slicing instead 
+
+                # remove 3 chars of punctuaction from end of table name
+                t = t[:-3]
+                # remove 2 chars of punctuation from start of table name
+                t= t[2:]
+                LOGGER.debug(f"Creating table: {t}")
+                f.write(f"CREATE TABLE {t} (\n")
+                column_Query = f"""
+                                SELECT column_name, data_type, character_maximum_length, is_nullable
+                                FROM information_schema.columns
+                                WHERE table_schema = 'app_mpsd'
+                                AND table_name = '{t}'
+                                """
+                columnCursor.execute(column_Query)
+                i = 0
+                row_Count = columnCursor.rowcount
+                for row in columnCursor:
+                    i += 1
+                    # write name and type
+                    f.write(f"  {row[0]} {row[1]}")
+                    # write character-type length
+                    if row[2] is not None:
+                        f.write(f" ({row[2]})")
+                    # write if not nullable
+                    if row[3] == "NO":
+                        f.write(" NOT NULL")
+                    #
+                    if i < row_Count:
+                        f.write(",\n")
+                f.write("\n);\n")
+
+                record_Query = f"""SELECT * FROM "app_mpsd"."{t}";"""
+
+                # try - except loop to get past psychopg2.errors.UndefinedTable:
+                # 'relation "table_name" does not exist'
+                try:
+                    LOGGER.debug(f"executing query: {record_Query}")
+                    cursor.execute(record_Query)
+                    i = 0
+                    for row in cursor:
+                        i += 1
+                        # maybe there's a more concise way to write the SQL
+                        # but this makes the files clearer for testing
+                        f.write(f"INSERT INTO {t} values ({row}); \n")
+                        LOGGER.debug(f"writing row {i}")
+                except psycopg2.Error as e:
+                    LOGGER.debug(f"psycopg2.Error: {e}")
+                    # https://www.psycopg.org/docs/connection.html#connection.rollback
+                    # Transactions that throw errors are still pending, 
+                    # meaning any subsequent transactions (e.g. SELECT) won't run
+                    conn.rollback()
         backupFile = fileName
+        # close connection if it exsists
+        if conn:
+            conn.close()
+            LOGGER.debug("Connection closed")
         return backupFile
 
-
-    # not including deleteDir, omitDirs functions from snowpack yet, not sure if 
-    # needed
-
-    # isReadyForArchive is likely not needed, that's a time check for >20 days
-
-    # getDirectoryDate may or may not be needed - ask Kevin, think it is to do
-    # with directory naming conventions in Snowpack stuff
-
-
-class DirectoryList(object):
-    """Iterator class for directories.
-
-    Provides an iterable, with each iteration gets the path to a new directory
-    that needs to be backed up
-    """
-
-    # not sure if this is essential to our script since I think we should be 
-    # backing everything up anyway
-    # Ask Kevin - big picture, should this script just back up everything?
-
 class ObjectStore(object):
+
+    #####
+    # Legacy code from Snowpack script
+    #####
+
     r'''
     Methods to support easy copying of data from filesystem to object store.
 
@@ -160,6 +207,8 @@ class ObjectStore(object):
     # def removeSrcRootDir
 
     def copyDirectoryRecurive(self, srcDir):
+        # Dec 8: Do not believe this function is necessary. Only copying one sql file, nto a whole directory
+
          # Function from Snowpack:
          # I can edit this to not have to worry about directories, 
          # just copy the backup file
@@ -228,10 +277,3 @@ class ObjectStore(object):
                     msg = f'source: {local_file} and {objStorePath} both ' + \
                           'exists, but md5s don\'t align'
                     LOGGER.error(msg)
-
-    # def checkMultipartEtag
-
-    # def objExists(self, inFile):
-
-      def refreshObjList(self, inFile):
-          #need this for the self.minIoClinet.list_objects line
