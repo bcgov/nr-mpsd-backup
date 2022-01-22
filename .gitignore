@@ -129,12 +129,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# file containing folder path to .env file
+MPSDbackup2ObjectSTore/envpath.py
+
 # miscellaneous
-sqls
-sqls/
-logs
-logs/
-columns
-columns/
-keys
-keys/
+misc
+misc/
+
