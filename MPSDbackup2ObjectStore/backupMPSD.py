@@ -13,7 +13,7 @@ runMPSDbackup.py
 
 """
 
-import datetime, glob, logging, psycopg2, os, sys, time
+import datetime, glob, gzip, logging, psycopg2, os, sys, time
 # import minio module for writing to S3
 import minio
 # import scandir if needed, faster for working through directories
@@ -59,7 +59,11 @@ class BackupMPSD(object):
         output, errors = p.communicate(f"{constants.POSTGRES_SECRET}\r\n")
         LOGGER.debug(f"Communicate Statement Output: {output}")
         LOGGER.debug(f"Communicate Statement Errors: {errors}")
-        return backup_File
+        compressed_Name = f"{backup_File}" + ".gz"
+        with (open(backup_File, "rb") as file_In, 
+             gzip.open(compressed_Name, "wb") as file_Out):
+            file_Out.writelines(file_In)
+        return compressed_Name
 
 class ObjectStore(object):
 
