@@ -12,6 +12,7 @@ runMPSDbackup.py
 """
 
 import datetime, gzip, logging, os
+from email.mime import base
 # import minio module for writing to S3
 import minio
 from . import constants
@@ -30,9 +31,9 @@ class BackupMPSD(object):
         # standards to ensure consistency with other Jenkins / similar tasks
         time_Stamp = datetime.datetime.now().strftime("%Y%b%d-%H%M")
         # add timestamp to stem name (MPSDBackup) and add .dmp to file name
-        file_Path = constants.WORKING_FOLDER
+        file_Path = os.path.dirname(__file__)
         LOGGER.debug(f"Working folder location: {file_Path}")
-        file_Name = f"MPSDBackup_{time_Stamp}.dmp"
+        file_Name = f"mpsdbackup_{time_Stamp}.dmp".lower()
         file = os.path.join(file_Path, file_Name)
         return file
 
@@ -41,19 +42,20 @@ class BackupMPSD(object):
         backup_File = self.generateFileName()
         LOGGER.debug(f"Creating backup file: {backup_File}")
         # command to send to subprocess to run pg_Dump with required parameters
-        dump_Command = (" pg_dump -Fc" # "custom" format dump
+        dump_Command = ("pg_dump -Fc" # "custom" format dump
                         f" -h {constants.POSTGRES_HOST}" 
                         f" -d {constants.POSTGRES_DB}"
                         f" -U {constants.POSTGRES_ID}"
                         f" -p {constants.POSTGRES_PORT}"
                         f" -n app_mpsd" # only dump app_mpsd schema
-                        f" --file={backup_File}" # line for everything else
+                        f''' --file="{backup_File}"'''
         )
         LOGGER.debug(f"pg_dump command: {dump_Command}")
         # open a subprocess and allow text to be passed into it
         p = Popen(dump_Command, shell=True, stdin=PIPE, stdout=PIPE, 
                 stderr=PIPE, text=True)
         # communicate the secret, carriage return is important
+
         output, errors = p.communicate(f"{constants.POSTGRES_SECRET}\r\n")
         LOGGER.debug(f"Communicate Statement Output: {output}")
         LOGGER.debug(f"Communicate Statement Errors: {errors}")

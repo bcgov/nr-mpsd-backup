@@ -4,27 +4,20 @@ import logging
 
 # LOGGER statements in this file do not write to the log. Not sure why
 # In other backupMPSD module they are in functions. Is that it?
-# either way convert these to print statements in development for now
+# either way convert these to print statements for now
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.debug("loading constants")
+print("loading constants")
 
-try:
-    from . import envpath
-    LOGGER.debug("Imported envpath.py")
-except:
-    LOGGER.error("envpath.py not imported / not found")
+# the path to the env file - testing purposes only
+#env_Folder = r"UNC path to folder containing local .env"
+#env_Path = os.path.join(env_Folder, '.env')
 
-# the path to the env file
-env_Path = os.path.join(envpath.env_Folder, '.env')
 if os.path.exists(env_Path):
-    LOGGER.debug("loading dot env...")
+    print("loading dot env...")
     dotenv.load_dotenv(env_Path)
 else:
-    LOGGER.debug("envPath does not exist")
-
-# path to save .log and .dmp during development
-WORKING_FOLDER = os.environ['WORKING_FOLDER']
+    print("envPath does not exist")
 
 # postgres constants
 POSTGRES_DB = os.environ['POSTGRES_DB']
