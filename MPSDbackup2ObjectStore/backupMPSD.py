@@ -60,9 +60,9 @@ class BackupMPSD(object):
         LOGGER.debug(f"Communicate Statement Output: {output}")
         LOGGER.debug(f"Communicate Statement Errors: {errors}")
         compressed_Name = f"{backup_File}.gz"
-        with (open(backup_File, "rb") as file_In, 
-             gzip.open(compressed_Name, "wb") as file_Out):
-            file_Out.writelines(file_In)
+        with open(backup_File, "rb") as file_In: 
+            with gzip.open(compressed_Name, "wb") as file_Out:
+                file_Out.writelines(file_In)
         return compressed_Name
 
 class ObjectStore(object):

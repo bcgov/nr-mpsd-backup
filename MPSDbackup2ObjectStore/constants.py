@@ -10,14 +10,16 @@ LOGGER = logging.getLogger(__name__)
 print("loading constants")
 
 # the path to the env file - testing purposes only
-#env_Folder = r"UNC path to folder containing local .env"
-#env_Path = os.path.join(env_Folder, '.env')
+"""
+env_Folder = r"UNC path to folder storing .env file goes here"
+env_Path = os.path.join(env_Folder, '.env')
 
 if os.path.exists(env_Path):
     print("loading dot env...")
     dotenv.load_dotenv(env_Path)
 else:
     print("envPath does not exist")
+"""
 
 # postgres constants
 POSTGRES_DB = os.environ['POSTGRES_DB']
