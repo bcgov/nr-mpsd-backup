@@ -10,8 +10,8 @@ LOGGER = logging.getLogger(__name__)
 print("loading constants")
 
 # the path to the env file - testing purposes only
-#env_Folder = r"UNC path to folder containing local .env"
-#env_Path = os.path.join(env_Folder, '.env')
+env_Folder = r"\\sfp.idir.bcgov\U161\NHEIDECK$\secrets\mpsd\archive\mpsddlvr_env_file"
+env_Path = os.path.join(env_Folder, '.env')
 
 if os.path.exists(env_Path):
     print("loading dot env...")
