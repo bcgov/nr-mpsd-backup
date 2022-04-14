@@ -9,9 +9,9 @@ import logging
 LOGGER = logging.getLogger(__name__)
 print("loading constants")
 
-# the path to the env file - testing purposes only
 """
-env_Folder = r"UNC path to folder storing .env file goes here"
+# the path to the env file - testing purposes only
+#env_Folder = r"UNC path to a .env file goes here"
 env_Path = os.path.join(env_Folder, '.env')
 
 if os.path.exists(env_Path):

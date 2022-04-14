@@ -12,11 +12,10 @@ runMPSDbackup.py
 """
 
 import datetime, gzip, logging, os
-from email.mime import base
 # import minio module for writing to S3
 import minio
 from . import constants
-# modules for pgdump
+# modules for pg_dump
 from subprocess import PIPE,Popen
 
 LOGGER = logging.getLogger(__name__)
@@ -48,14 +47,13 @@ class BackupMPSD(object):
                         f" -U {constants.POSTGRES_ID}"
                         f" -p {constants.POSTGRES_PORT}"
                         f" -n app_mpsd" # only dump app_mpsd schema
-                        f''' --file="{backup_File}"'''
+                        f" --file={backup_File}"
         )
         LOGGER.debug(f"pg_dump command: {dump_Command}")
         # open a subprocess and allow text to be passed into it
         p = Popen(dump_Command, shell=True, stdin=PIPE, stdout=PIPE, 
                 stderr=PIPE, text=True)
         # communicate the secret, carriage return is important
-
         output, errors = p.communicate(f"{constants.POSTGRES_SECRET}\r\n")
         LOGGER.debug(f"Communicate Statement Output: {output}")
         LOGGER.debug(f"Communicate Statement Errors: {errors}")
@@ -67,7 +65,7 @@ class BackupMPSD(object):
 
 class ObjectStore(object):
 
-    r"""
+    """
     Methods to support easy copying of data from filesystem to object store.
 
     Gets the object store connection information from environment variables:
@@ -85,9 +83,9 @@ class ObjectStore(object):
 
     def copyBackupFile(backup):
         # create client
-        minIoClient = minio.Minio(os.environ['OBJ_STORE_HOST'],
-                                  os.environ['OBJ_STORE_USER'],
-                                  os.environ['OBJ_STORE_SECRET'])
+        minIoClient = minio.Minio(constants.OBJ_STORE_HOST,
+                                  constants.OBJ_STORE_USER,
+                                  constants.OBJ_STORE_SECRET)
         LOGGER.debug(f"minIo client created")
         LOGGER.debug(f"full backup file path: {backup}")
         # split the file name off the backup file path, need this to name the
@@ -100,4 +98,3 @@ class ObjectStore(object):
             copy_Name,
             backup)
         LOGGER.debug(f"copyObj: {copyObj}")
-        print(f"copyObj: {copyObj}")
