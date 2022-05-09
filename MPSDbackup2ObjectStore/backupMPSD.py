@@ -46,7 +46,8 @@ class BackupMPSD(object):
                         f" -d {constants.POSTGRES_DB}"
                         f" -U {constants.POSTGRES_ID}"
                         f" -p {constants.POSTGRES_PORT}"
-                        f" -n app_mpsd" # only dump app_mpsd schema
+                        f" -n app_mpsd" # dump app_mpsd schema
+                        f" -n staging_mpsd" # dump staging_mpsd schema
                         f" --file={backup_File}"
         )
         LOGGER.debug(f"pg_dump command: {dump_Command}")
