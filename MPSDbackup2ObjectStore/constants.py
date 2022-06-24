@@ -11,6 +11,7 @@ print("loading constants")
 
 """
 # the path to the env file - testing purposes only
+# uncomment the below line and remove the quotes in line 12 and 23
 #env_Folder = r"UNC path to a .env file goes here"
 env_Path = os.path.join(env_Folder, '.env')
 
